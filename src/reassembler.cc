@@ -7,30 +7,31 @@ using namespace std;
 
 void Reassembler::insert( uint64_t first_index, string data, bool is_last_substring )
 {
-  if(data.length() == 0 && is_last_substring)
-  {
-    output_.writer().push(data);
-    output_.writer().close();
-    // waiting_assembler.
-    return; 
-  }
   if(first_unassembler_ < first_index + data.length())
   {  
-    if(first_unassembler_ >= first_index)
+    if(first_unassembler_ >= first_index) // 可以立即使用
     {
       if(called_flag_)
       {
         waiting_assembler.erase(waiting_assembler.begin());
+        called_flag_ = false;
       }
-      output_.writer().push(data.substr(first_unassembler_));
+
+      uint64_t len = min(data.substr(first_unassembler_ - first_index).length(), output_.writer().available_capacity());
+      output_.writer().push(data.substr(first_unassembler_ - first_index, len)); // push 容量待优化
+      
+      if(len == output_.writer().available_capacity())
+      {
+        return;
+      }
       
       if(is_last_substring)
       {
         output_.writer().close();
-        // waiting_assembler.
         return; 
       }
-      first_unassembler_ = first_index + data.length();
+
+      first_unassembler_ += data.length();
 
       if(!waiting_assembler.empty())
       {
@@ -38,8 +39,8 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
         Reassembler::insert(waiting_assembler.begin()->first, waiting_assembler.begin()->second, false);
       }
     }
-    // save
-    else if(!is_last_substring && first_index - first_unassembler_ <= output_.writer().available_capacity()/2)
+    // else if(!is_last_substring && first_index - first_unassembler_ <= output_.writer().available_capacity()/2)  // 不能立即使用，保存map
+    else if(!is_last_substring)
     {
       if(called_flag_)
       {
@@ -51,10 +52,26 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
       }
     }
   }
-  else
+  else if(data.length() == 0 && first_index == first_unassembler_) 
   {
+    if(is_last_substring)
+    {
+      output_.writer().close();
       return;
+    }
   }
+
+  if(called_flag_)
+  {
+    waiting_assembler.erase(waiting_assembler.begin());
+    called_flag_ = false;
+    if(!waiting_assembler.empty())
+    {
+      called_flag_ = true;
+      Reassembler::insert(waiting_assembler.begin()->first, waiting_assembler.begin()->second, false);
+    }
+  }
+
   debug( "unimplemented insert({}, {}, {}) called", first_index, data, is_last_substring );
 }
 
