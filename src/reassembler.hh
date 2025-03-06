@@ -1,12 +1,15 @@
 #pragma once
 
+#include <map>
+
 #include "byte_stream.hh"
+
 
 class Reassembler
 {
 public:
   // Construct Reassembler to write into given ByteStream.
-  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ) {}
+  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ), first_unassembler_(0), waiting_assembler(), called_flag_(false) {}
 
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -43,4 +46,7 @@ public:
 
 private:
   ByteStream output_;
+  uint64_t first_unassembler_;
+  std::map<uint64_t, std::string> waiting_assembler;
+  bool called_flag_;
 };
