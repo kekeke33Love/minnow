@@ -33,15 +33,17 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
   
       while(!waiting_assembler.empty() && waiting_assembler.begin()->first == first_unassembler_)
       {
-        if(!output_.writer().available_capacity()) {break;}
-
         output_.writer().push(waiting_assembler.begin()->second);
         first_unassembler_++;
         waiting_assembler.erase(waiting_assembler.begin());
         unassembled_bytes_--;
       }
       
-      if(first_unassembler_  == eof_index && is_last_substring) {output_.writer().close();return; }
+      if(eof_index == first_unassembler_) 
+      {
+        output_.writer().close();
+        return;
+      }
     }
 
     // save
