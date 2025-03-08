@@ -9,7 +9,7 @@ class Reassembler
 {
 public:
   // Construct Reassembler to write into given ByteStream.
-  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ), first_unassembler_(0), waiting_assembler(), called_flag_(false) {}
+  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ), first_unassembler_(0), waiting_assembler(), called_flag_(false), unassembled_bytes_(0), eof_index(-1) {}
 
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -49,4 +49,6 @@ private:
   uint64_t first_unassembler_;
   std::map<uint64_t, std::string> waiting_assembler;
   bool called_flag_;
+  uint64_t unassembled_bytes_;
+  uint64_t eof_index;
 };

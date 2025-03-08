@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "reassembler.hh"
 #include "debug.hh"
 
@@ -7,69 +9,63 @@ using namespace std;
 
 void Reassembler::insert( uint64_t first_index, string data, bool is_last_substring )
 {
+  if(is_last_substring)
+  {
+    eof_index = first_index + data.length();
+  }
+
   if(first_unassembler_ < first_index + data.length())
-  {  
-    if(first_unassembler_ >= first_index) // 可以立即使用
-    {
-      if(called_flag_)
+  { 
+    // 可以直接使用并且还有缓存
+    if(first_unassembler_ >= first_index && output_.writer().available_capacity() != 0)
+    {  
+      uint64_t len = 0;
+      if(waiting_assembler.empty())
       {
-        waiting_assembler.erase(waiting_assembler.begin());
-        called_flag_ = false;
-      }
-
-      uint64_t len = min(data.substr(first_unassembler_ - first_index).length(), output_.writer().available_capacity());
-      output_.writer().push(data.substr(first_unassembler_ - first_index, len)); // push 容量待优化
-      
-      if(len == output_.writer().available_capacity())
-      {
-        return;
-      }
-      
-      if(is_last_substring)
-      {
-        output_.writer().close();
-        return; 
-      }
-
-      first_unassembler_ += data.length();
-
-      if(!waiting_assembler.empty())
-      {
-        called_flag_ = true;
-        Reassembler::insert(waiting_assembler.begin()->first, waiting_assembler.begin()->second, false);
-      }
-    }
-    // else if(!is_last_substring && first_index - first_unassembler_ <= output_.writer().available_capacity()/2)  // 不能立即使用，保存map
-    else if(!is_last_substring)
-    {
-      if(called_flag_)
-      {
-        return;
+        len = min(data.substr(first_unassembler_ - first_index).length(), output_.writer().available_capacity());
       }
       else
       {
-        waiting_assembler.emplace(first_index, data);
+        len = min(data.substr(first_unassembler_ - first_index).length(), waiting_assembler.begin()->first - first_unassembler_);
       }
+      output_.writer().push(data.substr(first_unassembler_ - first_index, len));
+      first_unassembler_ += len;
+  
+      while(!waiting_assembler.empty() && waiting_assembler.begin()->first == first_unassembler_)
+      {
+        if(!output_.writer().available_capacity()) {break;}
+
+        output_.writer().push(waiting_assembler.begin()->second);
+        first_unassembler_++;
+        waiting_assembler.erase(waiting_assembler.begin());
+        unassembled_bytes_--;
+      }
+      
+      if(first_unassembler_  == eof_index && is_last_substring) {output_.writer().close();return; }
     }
-  }
-  else if(data.length() == 0 && first_index == first_unassembler_) 
-  {
-    if(is_last_substring)
-    {
-      output_.writer().close();
-      return;
+
+    // save
+    if(first_index > first_unassembler_ && first_index <= first_unassembler_ + output_.writer().available_capacity())
+    {   
+      uint64_t count = 0;
+      uint64_t index = first_index;
+      const uint64_t len = (first_index + data.length() < first_unassembler_ + output_.writer().available_capacity()) ? first_index + data.length() : first_unassembler_ + output_.writer().available_capacity();
+      for(;index < len;)
+      {
+        if(waiting_assembler.count(index) == 0)
+        {
+          waiting_assembler.emplace(index, data.substr(count, 1));
+          unassembled_bytes_++;
+        }
+        index++;
+        count++;
+      }  
     }
   }
 
-  if(called_flag_)
+  else if(data.length() == 0 && first_index == first_unassembler_) 
   {
-    waiting_assembler.erase(waiting_assembler.begin());
-    called_flag_ = false;
-    if(!waiting_assembler.empty())
-    {
-      called_flag_ = true;
-      Reassembler::insert(waiting_assembler.begin()->first, waiting_assembler.begin()->second, false);
-    }
+     if(first_unassembler_  == eof_index && is_last_substring) {output_.writer().close();return; } 
   }
 
   debug( "unimplemented insert({}, {}, {}) called", first_index, data, is_last_substring );
@@ -80,5 +76,5 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
 uint64_t Reassembler::count_bytes_pending() const
 {
   debug( "unimplemented count_bytes_pending() called" );
-  return {};
+  return unassembled_bytes_;
 }
