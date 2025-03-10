@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "reassembler.hh"
 #include "debug.hh"
 
@@ -17,35 +15,32 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
   if(first_unassembler_ < first_index + data.length())
   { 
     // 可以直接使用并且还有缓存
-    if(first_unassembler_ >= first_index && output_.writer().available_capacity() != 0)
+    if(output_.writer().available_capacity() > 0 && first_unassembler_ >= first_index)
     {  
-      uint64_t len = 0;
-      if(waiting_assembler.empty())
-      {
-        len = min(data.substr(first_unassembler_ - first_index).length(), output_.writer().available_capacity());
-      }
-      else
-      {
-        len = min(data.substr(first_unassembler_ - first_index).length(), waiting_assembler.begin()->first - first_unassembler_);
-      }
-      output_.writer().push(data.substr(first_unassembler_ - first_index, len));
+      uint64_t index = first_unassembler_ - first_index;
+      uint64_t len =  min(data.substr(index).length(), output_.writer().available_capacity());
+      output_.writer().push(data.substr(index, len));
       first_unassembler_ += len;
-  
-      while(!waiting_assembler.empty() && waiting_assembler.begin()->first == first_unassembler_)
+
+      while (!waiting_assembler.empty())
       {
-        output_.writer().push(waiting_assembler.begin()->second);
-        first_unassembler_++;
-        waiting_assembler.erase(waiting_assembler.begin());
-        unassembled_bytes_--;
-      }
-      
-      if(eof_index == first_unassembler_) 
-      {
-        output_.writer().close();
-        return;
+        if(waiting_assembler.begin()->first < first_unassembler_)
+        {
+          waiting_assembler.erase(waiting_assembler.begin());
+          unassembled_bytes_--;
+        }
+        else if(waiting_assembler.begin()->first == first_unassembler_)
+        {
+          output_.writer().push(waiting_assembler.begin()->second);
+          first_unassembler_++;
+          waiting_assembler.erase(waiting_assembler.begin());
+          unassembled_bytes_--;
+        }else
+        {
+          break;
+        }
       }
     }
-
     // save
     if(first_index > first_unassembler_ && first_index <= first_unassembler_ + output_.writer().available_capacity())
     {   
@@ -65,9 +60,9 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     }
   }
 
-  else if(data.length() == 0 && first_index == first_unassembler_) 
+  if(first_unassembler_ == eof_index) 
   {
-     if(first_unassembler_  == eof_index && is_last_substring) {output_.writer().close();return; } 
+    output_.writer().close();
   }
 
   debug( "unimplemented insert({}, {}, {}) called", first_index, data, is_last_substring );
