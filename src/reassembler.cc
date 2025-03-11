@@ -41,7 +41,7 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
       unassembled_bytes_ -= it->second.length();
       waiting_assembler.erase(it);
     }
-    else if(data.length() == waiting_assembler.find(first_index)->second.length())
+    else
     {
       return;
     }
