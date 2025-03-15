@@ -9,7 +9,7 @@ class Reassembler
 {
 public:
   // Construct Reassembler to write into given ByteStream.
-  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ), first_unassembler_(0), waiting_assembler(), called_flag_(false), unassembled_bytes_(0), eof_index(-1) {}
+  explicit Reassembler( ByteStream&& output ) : output_( std::move( output ) ), first_unassembler_(0), waiting_assembler(), unassembled_bytes_(0), eof_index(-1) {}
 
   /*
    * Insert a new substring to be reassembled into a ByteStream.
@@ -44,11 +44,13 @@ public:
   // Access output stream writer, but const-only (can't write from outside)
   const Writer& writer() const { return output_.writer(); }
 
+  // used by lab2
+  uint64_t get_first_unassembler() const { return first_unassembler_; }
+
 private:
   ByteStream output_;
   uint64_t first_unassembler_;
   std::map<uint64_t, std::string> waiting_assembler;
-  bool called_flag_;
   uint64_t unassembled_bytes_;
   uint64_t eof_index;
 };

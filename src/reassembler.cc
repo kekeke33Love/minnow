@@ -67,66 +67,6 @@ void Reassembler::insert( uint64_t first_index, string data, bool is_last_substr
     output_.writer().close();
   }
 
-  // if(first_unassembler_ < first_index + data.length())
-  // { 
-  //   // 可以直接使用并且还有缓存
-  //   if(output_.writer().available_capacity() > 0 && first_unassembler_ >= first_index)
-  //   {  
-  //     uint64_t index = first_unassembler_ - first_index;
-  //     uint64_t len =  min(data.substr(index).length(), output_.writer().available_capacity());
-  //     output_.writer().push(data.substr(index, len));
-  //     first_unassembler_ += len;
-
-  //     while(!waiting_assembler.empty())
-  //     {
-  //       first_index = waiting_assembler.begin()->first;
-  //       data = waiting_assembler.begin()->second;
-  //       if(first_index + data.length() <= first_unassembler_)
-  //       {
-  //         unassembled_bytes_ -= data.length();
-  //         waiting_assembler.erase(waiting_assembler.begin());
-  //       }
-  //       else if(first_index <= first_unassembler_)
-  //       {
-  //         data = data.substr(first_unassembler_ - first_index);
-  //         output_.writer().push(data);
-  //         first_unassembler_ += data.length();
-  //         unassembled_bytes_ -= waiting_assembler.begin()->second.length();
-  //         waiting_assembler.erase(waiting_assembler.begin());
-          
-  //       }
-  //     }
-  //   }
-  //   // save
-  //   if(first_index > first_unassembler_ && first_index <= first_unassembler_ + output_.writer().available_capacity())
-  //   {
-  //     if(first_index + data.length() > first_unassembler_ + output_.writer().available_capacity())
-  //     {
-  //       data = data.erase(first_unassembler_ + output_.writer().available_capacity() - first_index);
-  //     }
-
-  //     if(waiting_assembler.count(first_index) == 1)
-  //     {
-  //       auto it = waiting_assembler.find(first_index);
-  //       unassembled_bytes_ -= it->second.length();
-  //       waiting_assembler.erase(it);
-
-  //     }
-  //     unassembled_bytes_ += data.length();
-  //     waiting_assembler.emplace(first_index, data);
-      
-  //     unassembled_bytes_ = merge_substrings(waiting_assembler, unassembled_bytes_);
-
-
-      
-  //   }
-  // }
-
-  // if(first_unassembler_ == eof_index)
-  // {
-  //   output_.writer().close();
-  // }
-
   debug( "unimplemented insert({}, {}, {}) called", first_index, data, is_last_substring );
 }
 
